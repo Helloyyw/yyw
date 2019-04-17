@@ -3,16 +3,20 @@ package com.xmcc.springboot_demo.service.prductinfoservice;
 
 import com.xmcc.springboot_demo.Dto.ProductCateGoryDto;
 import com.xmcc.springboot_demo.Dto.ProductInfoDto;
+import com.xmcc.springboot_demo.common.ProductEnums;
 import com.xmcc.springboot_demo.common.ResultEnums;
 import com.xmcc.springboot_demo.common.ResultResponse;
 import com.xmcc.springboot_demo.entity.ProductInfo;
+import com.xmcc.springboot_demo.exception.MyException;
 import com.xmcc.springboot_demo.repository.ProductInfoRepository;
 import com.xmcc.springboot_demo.service.productcategoryservice.ProductCategoryService;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
 
 import javax.annotation.Resource;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
@@ -51,5 +55,30 @@ public class ProductInfoServiceImpl implements ProductInfoService {
 
 
         return ResultResponse.success(finalProductCateGoryDto);
+    }
+
+    @Override
+    public ResultResponse<ProductInfo> findById(String productId) {
+        if(StringUtils.isBlank(productId)){
+            return ResultResponse.fail(ResultEnums.PARAM_ERROR.getMsg()+":"+productId);
+        }
+        //使用jpa提供的sql去查询
+        Optional<ProductInfo> byId = productInfoRepository.findById(productId);
+        if(!byId.isPresent()){
+            return ResultResponse.fail(productId+":"+ResultEnums.NOT_EXITS.getMsg());
+        }
+        ProductInfo productInfo = byId.get();
+        //判断商品是否下架
+        if(productInfo.getProductStatus()== ProductEnums.PRODUCT_DOWN.getCode()){
+            return ResultResponse.fail(ProductEnums.PRODUCT_DOWN.getMsg());
+        }
+
+
+        return ResultResponse.success(productInfo);
+    }
+
+    @Override
+    public void updateProduct(ProductInfo productInfo) {
+        productInfoRepository.save(productInfo);
     }
 }
