@@ -13,4 +13,6 @@ public class OrderDetailServiceImpl extends BatchImpl<OrderDetail> implements Or
     public void batchInsert(List<OrderDetail> list) {
         super.batchInsert(list);
     }
+
+
 }

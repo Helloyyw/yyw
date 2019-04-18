@@ -1,6 +1,5 @@
 package com.xmcc.springboot_demo.common;
 
-import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -11,7 +10,7 @@ import lombok.NoArgsConstructor;
 public class ResultResponse<T> {
     private  int code;
     private  String msg ;
-    @JsonInclude(JsonInclude.Include.NON_NULL)//返回json时忽略为null的属性
+  //  @JsonInclude(JsonInclude.Include.NON_NULL)//返回json时忽略为null的属性
     private  T data;
 
     //失败了或者成功了 有时候不需要返回 data

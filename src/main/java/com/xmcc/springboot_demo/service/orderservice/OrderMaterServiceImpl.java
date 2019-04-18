@@ -2,22 +2,27 @@ package com.xmcc.springboot_demo.service.orderservice;
 
 import com.google.common.collect.Maps;
 import com.xmcc.springboot_demo.Dto.OrderDetailDto;
+import com.xmcc.springboot_demo.Dto.OrderDetailDto2;
 import com.xmcc.springboot_demo.Dto.OrderMasterDto;
-import com.xmcc.springboot_demo.common.OrderEnum;
-import com.xmcc.springboot_demo.common.PayEnum;
-import com.xmcc.springboot_demo.common.ProductEnums;
-import com.xmcc.springboot_demo.common.ResultResponse;
+import com.xmcc.springboot_demo.Dto.OrderMasterListDto;
+import com.xmcc.springboot_demo.Param.OrderDetailParam;
+import com.xmcc.springboot_demo.Param.Param;
+import com.xmcc.springboot_demo.common.*;
 import com.xmcc.springboot_demo.entity.OrderDetail;
 import com.xmcc.springboot_demo.entity.OrderMaster;
 import com.xmcc.springboot_demo.entity.ProductInfo;
 import com.xmcc.springboot_demo.exception.MyException;
+import com.xmcc.springboot_demo.repository.OrderDetailRepository;
+
 import com.xmcc.springboot_demo.repository.OrderMaterRepository;
 import com.xmcc.springboot_demo.service.prductinfoservice.ProductInfoService;
 import com.xmcc.springboot_demo.util.BigDecimalUtil;
 import com.xmcc.springboot_demo.util.IDUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
-
 import javax.transaction.Transactional;
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -35,6 +40,9 @@ public class OrderMaterServiceImpl implements OrderMaterService {
       private ProductInfoService productInfoService;
       @Autowired
       private  OrderDetailService orderDetailService;
+    @Autowired
+    private  OrderDetailRepository orderDetailRepository;
+
     @Override
     @Transactional//增删改触发事务
     public ResultResponse insertOrder(OrderMasterDto orderMasterDto) {
@@ -88,5 +96,79 @@ public class OrderMaterServiceImpl implements OrderMaterService {
         //按照前台要求的数据结构传入
         map.put("orderId",orderId);
         return ResultResponse.success(map);
+    }
+
+    /**
+     * 订单查询
+     * @param param
+     * @return
+     */
+    @Override
+    public ResultResponse findAllOrderList(Param param) {
+//          获取出page和size
+        Integer page = param.getPage();
+        Integer size = param.getSize();
+        String openid = param.getOpenid();
+        Pageable pageable = new PageRequest(page,size);
+        //根据openid去查询订单获取oderid然后去查询订单项列表
+       List<OrderMasterListDto> orderMasterListDtos = new ArrayList<>();
+
+        Page<OrderMaster> orderMasterlist =  orderMaterRepository.findByBuyerOpenid(openid, pageable);
+        List<OrderMaster> orderMasters = orderMasterlist.getContent();
+
+        for(OrderMaster orderMaster:orderMasters){
+//            //查询订单项集合
+//            List<OrderDetail> orderDetailList =orderDetailRepository.findAllByorderId(orderMaster.getOrderId());
+          //  OrderMasterListDto.setOrderDetailList(orderDetailList);
+            //判断订单为0 的就加入到dto集合
+             if(orderMaster.getOrderStatus() == 0){
+                 orderMasterListDtos.add(OrderMasterListDto.build(orderMaster));
+             }
+        }
+        return ResultResponse.success(orderMasterListDtos);
+    }
+
+    /**
+     * 订单详情
+     *
+     * @return
+     */
+    @Override
+    public ResultResponse findOrderDetail(OrderDetailParam orderDetailParam) {
+        OrderMaster byId = orderMaterRepository.findByBuyerOpenidAndOrderId(orderDetailParam.getOpenid(),orderDetailParam.getOrderId());
+        //判断是否为空
+        if(byId == null){
+            return ResultResponse.fail(orderDetailParam.getOpenid()+":"+ ResultEnums.NOT_EXITS.getMsg());
+        }
+        OrderMasterListDto orderMasterListDto = OrderMasterListDto.build(byId);
+        //根据orderId查询对应的集合
+        List<OrderDetail> orderDetailList = orderDetailRepository.findAllByorderId(orderDetailParam.getOrderId());
+        List<OrderDetailDto2> orderDetailDto2sList = new ArrayList<>();
+        if(orderDetailList.size()>0){
+            for(OrderDetail orderDetail:orderDetailList){
+                orderDetailDto2sList.add(OrderDetailDto2.build(orderDetail));
+            }
+        }
+        orderMasterListDto.setOrderDetailList(orderDetailDto2sList);
+
+
+
+        return ResultResponse.success(orderMasterListDto);
+    }
+/**取消订单
+    @Override、
+    */
+    public ResultResponse cancelOrderByid(OrderDetailParam orderDetailParam) {
+        //查询到订单
+        OrderMaster byId = orderMaterRepository.findByBuyerOpenidAndOrderId(orderDetailParam.getOpenid(), orderDetailParam.getOrderId());
+        //判断是否为空
+        if (byId == null) {
+            return ResultResponse.fail(orderDetailParam.getOpenid() + ":" + ResultEnums.NOT_EXITS.getMsg());
+        }
+        byId.setPayStatus(OrderEnum.CANCEL.getCode());
+        orderMaterRepository.save(byId);
+
+        return ResultResponse.success();
+
     }
 }

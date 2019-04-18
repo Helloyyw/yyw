@@ -10,4 +10,5 @@ public interface OrderDetailService  {
     //批量插入
     void batchInsert(List<OrderDetail> orderDetails);
 
+
 }

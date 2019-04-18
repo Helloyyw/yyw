@@ -34,9 +34,6 @@ public class OrderMasterDto implements Serializable {
     @NotBlank(message = "必须输入用户的微信openid")
     @ApiModelProperty(value = "授权码",dataType = "String")
     private  String openid;
-
-
-
     @NotEmpty(message = "订单项不能为空")
     @Valid //表示需要嵌套验证
     @ApiModelProperty(value = "订单项集合",dataType = "List")
