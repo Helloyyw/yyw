@@ -12,7 +12,7 @@ import org.springframework.context.annotation.Configuration;
 public class WechatConfig {
     @Autowired
     private WeiXinPropertyties weixinProperties;
-
+//
     @Bean
     public WxMpService wxMpService() {
      //创建一个WxMpService对象
