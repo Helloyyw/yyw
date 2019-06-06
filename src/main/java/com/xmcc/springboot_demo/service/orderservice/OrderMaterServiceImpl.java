@@ -15,6 +15,7 @@ import com.xmcc.springboot_demo.exception.MyException;
 import com.xmcc.springboot_demo.repository.OrderDetailRepository;
 
 import com.xmcc.springboot_demo.repository.OrderMaterRepository;
+import com.xmcc.springboot_demo.service.PayService;
 import com.xmcc.springboot_demo.service.prductinfoservice.ProductInfoService;
 import com.xmcc.springboot_demo.util.BigDecimalUtil;
 import com.xmcc.springboot_demo.util.IDUtils;
@@ -42,7 +43,8 @@ public class OrderMaterServiceImpl implements OrderMaterService {
       private  OrderDetailService orderDetailService;
     @Autowired
     private  OrderDetailRepository orderDetailRepository;
-
+    @Autowired
+    private PayService payService;
     @Override
     @Transactional//增删改触发事务
     public ResultResponse insertOrder(OrderMasterDto orderMasterDto) {
@@ -75,7 +77,7 @@ public class OrderMaterServiceImpl implements OrderMaterService {
             //计算价格
             totalPrice =BigDecimalUtil.add(totalPrice,BigDecimalUtil.multi(productInfo.getProductPrice(),item.getProductQuantity()));
         }
-  //生成订单id
+         //生成订单id
         String orderId = IDUtils.createIdbyUUID();
         //构建订单对象信息
         OrderMaster orderMaster= OrderMaster.builder().buyerAddress(orderMasterDto.getAddress()).buyerName(orderMasterDto.getName())
@@ -109,11 +111,13 @@ public class OrderMaterServiceImpl implements OrderMaterService {
         Integer page = param.getPage();
         Integer size = param.getSize();
         String openid = param.getOpenid();
+//        构建分页查询对象
         Pageable pageable = new PageRequest(page,size);
         //根据openid去查询订单获取oderid然后去查询订单项列表
        List<OrderMasterListDto> orderMasterListDtos = new ArrayList<>();
-
+//利用jpa的分页查询功能得到page对象
         Page<OrderMaster> orderMasterlist =  orderMaterRepository.findByBuyerOpenid(openid, pageable);
+        //然后得到list订单集合遍历集合封装为dto集合
         List<OrderMaster> orderMasters = orderMasterlist.getContent();
 
         for(OrderMaster orderMaster:orderMasters){
@@ -135,12 +139,14 @@ public class OrderMaterServiceImpl implements OrderMaterService {
      */
     @Override
     public ResultResponse findOrderDetail(OrderDetailParam orderDetailParam) {
-        OrderMaster byId = orderMaterRepository.findByBuyerOpenidAndOrderId(orderDetailParam.getOpenid(),orderDetailParam.getOrderId());
+        //根据订单id和用户授权码查询到订单对象
+        ResultResponse<OrderMaster> byId = orderMaterRepository.findByBuyerOpenidAndOrderId(orderDetailParam.getOpenid(),orderDetailParam.getOrderId());
+        OrderMaster orderMaster = byId.getData();
         //判断是否为空
         if(byId == null){
             return ResultResponse.fail(orderDetailParam.getOpenid()+":"+ ResultEnums.NOT_EXITS.getMsg());
         }
-        OrderMasterListDto orderMasterListDto = OrderMasterListDto.build(byId);
+        OrderMasterListDto orderMasterListDto = OrderMasterListDto.build(orderMaster);
         //根据orderId查询对应的集合
         List<OrderDetail> orderDetailList = orderDetailRepository.findAllByorderId(orderDetailParam.getOrderId());
         List<OrderDetailDto2> orderDetailDto2sList = new ArrayList<>();
@@ -158,15 +164,26 @@ public class OrderMaterServiceImpl implements OrderMaterService {
 /**取消订单
     @Override、
     */
+@Override
+@Transactional
     public ResultResponse cancelOrderByid(OrderDetailParam orderDetailParam) {
         //查询到订单
-        OrderMaster byId = orderMaterRepository.findByBuyerOpenidAndOrderId(orderDetailParam.getOpenid(), orderDetailParam.getOrderId());
+        ResultResponse<OrderMaster> byId = orderMaterRepository.findByBuyerOpenidAndOrderId(orderDetailParam.getOpenid(), orderDetailParam.getOrderId());
+    OrderMaster orderMaster = byId.getData();
         //判断是否为空
         if (byId == null) {
             return ResultResponse.fail(orderDetailParam.getOpenid() + ":" + ResultEnums.NOT_EXITS.getMsg());
         }
-        byId.setPayStatus(OrderEnum.CANCEL.getCode());
-        orderMaterRepository.save(byId);
+  if(byId.getCode() == PayEnum.FAIL.getCode()){
+    return byId;
+  }
+  if(orderMaster.getOrderStatus() == PayEnum.FINSH.getCode()){
+//退款
+      payService.refound(orderMaster);
+
+  }
+       orderMaster.setPayStatus(OrderEnum.CANCEL.getCode());
+        orderMaterRepository.save(orderMaster);
 
         return ResultResponse.success();
 

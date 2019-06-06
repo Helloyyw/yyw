@@ -19,7 +19,6 @@ public class ProductCateGoryController {
     @GetMapping("list")
     @ApiOperation(value = "查询商品列表")//使用swagger2的注解对方法接口描述
     public ResultResponse list(){
-
         return productInfoService.queryList();
     }
 }

@@ -4,9 +4,7 @@ import com.google.common.collect.Maps;
 import com.xmcc.springboot_demo.Dto.OrderMasterDto;
 import com.xmcc.springboot_demo.Param.OrderDetailParam;
 import com.xmcc.springboot_demo.Param.Param;
-import com.xmcc.springboot_demo.common.ResultEnums;
 import com.xmcc.springboot_demo.common.ResultResponse;
-import com.xmcc.springboot_demo.exception.MyException;
 import com.xmcc.springboot_demo.service.orderservice.OrderMaterService;
 import com.xmcc.springboot_demo.util.JsonUtil;
 import io.swagger.annotations.Api;
@@ -17,9 +15,7 @@ import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-
 import javax.validation.Valid;
-import javax.validation.constraints.NotBlank;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -31,8 +27,15 @@ public class OrderMasterController {
 
     @Autowired
     private OrderMaterService orderMaterService;
-    @PostMapping("create")
-    @ApiOperation(value = "创建订单接口", httpMethod = "POST", response =ResultResponse.class)
+
+    /**
+     * 创建订单
+     * @param orderMasterDto
+     * @param bindingResult
+     * @return
+     */
+    @PostMapping("create")//post方式上传
+    @ApiOperation(value = "创建订单接口", httpMethod = "POST", response =ResultResponse.class)//使用swegger接口文档注释
     public ResultResponse  creatOrder(
             @Valid @ApiParam(name="订单对象",value = "传入json格式",required = true)OrderMasterDto orderMasterDto,
             BindingResult bindingResult){
